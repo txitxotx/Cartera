@@ -3,7 +3,7 @@ name: Deploy GitHub Pages
 on:
   push:
     branches:
-      - main
+      - main  # Reemplaza con la rama que utilices
 
 jobs:
   deploy:
@@ -12,19 +12,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '14'
-
-      - name: Install dependencies
-        run: npm install
-        working-directory: ./templates
-
-      - name: Build project
-        run: npm run build
-        working-directory: ./templates
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
