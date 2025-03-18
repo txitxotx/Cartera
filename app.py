@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, request, jsonify
+from flask import Flask, render_template, redirect, url_for, request, jsonify, send_from_directory
 import sqlite3
 import yfinance as yf
 import matplotlib
@@ -10,10 +10,14 @@ import base64
 import plotly.graph_objects as go
 import json
 import plotly
+from jinja2 import ChoiceLoader, FileSystemLoader
 
-
-
-app = Flask(__name__, template_folder="docs")
+app = Flask(__name__)
+# Configuramos el jinja_loader para buscar primero en la raíz y luego en la carpeta 'templates'
+app.jinja_loader = ChoiceLoader([
+    FileSystemLoader('.'),
+    FileSystemLoader('templates')
+])
 
 def get_current_value(isin):
     try:
@@ -23,7 +27,7 @@ def get_current_value(isin):
             return info['regularMarketPrice']
         else:
             print(f"Advertencia: No se encontró precio para {isin}")
-            return 0  # Puedes cambiar esto a otro valor si lo prefieres
+            return 0  # Puedes cambiar este valor según prefieras
     except Exception as e:
         print(f"Error al obtener el precio de {isin}: {e}")
         return 0  # Evita que falle el programa
@@ -43,6 +47,7 @@ def create_graph(ticker, ax):
     ax.xaxis.set_major_locator(plt.MaxNLocator(10))
     ax.yaxis.set_major_locator(plt.MaxNLocator(10))
     ax.grid(color='#FFFFFF', linestyle='-', linewidth=0.5)
+    
 def init_db():
     with sqlite3.connect('database.db') as conn:
         cursor = conn.cursor()
@@ -93,7 +98,8 @@ def init_db():
             conn.commit()
 
 init_db()
-@app.route('/docs')
+
+@app.route('/')
 def index():
     with sqlite3.connect('database.db') as conn:
         cursor = conn.cursor()
@@ -104,9 +110,10 @@ def index():
         total_money = sum(float(investment[6]) for investment in investments)
         total_purchase_value = sum(float(investment[3]) for investment in investments)
     
+    # Al utilizar render_template, se buscará 'index.html' primero en la raíz
     return render_template('index.html', investments=investments, total_quantity=total_quantity, total_money=total_money, total_purchase_value=total_purchase_value)
 
-@app.route('/docs/update-assets', methods=['GET'])
+@app.route('/update-assets', methods=['GET'])
 def update_assets():
     try:
         with sqlite3.connect('database.db') as conn:
@@ -131,7 +138,8 @@ def update_assets():
     except Exception as e:
         print(f"Error al actualizar los activos: {e}")
         return jsonify(success=False)
-@app.route('/docs/add-asset-window')
+
+@app.route('/add-asset-window')
 def add_asset_window():
     return render_template('add_asset.html')
 
@@ -159,7 +167,8 @@ def add_asset():
     except Exception as e:
         print(f"Error al agregar el activo: {e}")
         return jsonify(success=False, error=str(e))
-@app.route('/docs/edit-asset', methods=['POST'])
+
+@app.route('/edit-asset', methods=['POST'])
 def edit_asset():
     try:
         data = request.get_json()
@@ -189,7 +198,8 @@ def edit_asset():
     except Exception as e:
         print(f"Error al editar el activo: {e}")
         return jsonify(success=False, error=str(e))
-@app.route('/docs/edit-asset-window')
+
+@app.route('/edit-asset-window')
 def edit_asset_window():
     with sqlite3.connect('database.db') as conn:
         cursor = conn.cursor()
@@ -197,7 +207,7 @@ def edit_asset_window():
         investments = cursor.fetchall()
     return render_template('edit_asset.html', investments=investments)
 
-@app.route('/docs/graphs')
+@app.route('/graphs')
 def graphs():
     with sqlite3.connect('database.db') as conn:
         cursor = conn.cursor()
@@ -216,7 +226,8 @@ def graphs():
         images.append({'url': plot_url, 'name': investment[1]})
 
     return render_template('graphs.html', images=images)
-@app.route('/docs/tables')
+
+@app.route('/tables')
 def tables():
     with sqlite3.connect('database.db') as conn:
         cursor = conn.cursor()
@@ -231,7 +242,7 @@ def tables():
         epsv = [inv for inv in investments if inv[8] == "EPSV"]
     return render_template('tables.html', dca=dca, renta_fija=renta_fija, renta_variable=renta_variable, cryptomonedas=cryptomonedas, acciones=acciones, epsv=epsv)
 
-@app.route('/docs/bank')
+@app.route('/bank')
 def bank():
     banks = [
         ("Kutxabank Nomina", 12295.94, 0, ""),
@@ -248,7 +259,8 @@ def bank():
     banks.append(("TOTALES", total_inversion, "", total_resultado))
 
     return render_template('bank.html', banks=banks)
-@app.route('/docs/investment-categories')
+
+@app.route('/investment-categories')
 def investment_categories():
     with sqlite3.connect('database.db') as conn:
         cursor = conn.cursor()
@@ -273,8 +285,8 @@ def investment_categories():
             text=f"{percentage:.1f}%",
             textposition='outside',
             textfont=dict(
-                size=16,  # Tamaño de la fuente
-                color='#00FF00'  # Color de los porcentajes
+                size=16,
+                color='#00FF00'
             ),
             marker=dict(color=color, line=dict(width=2, color="white")),
             hoverinfo='text',
@@ -294,7 +306,8 @@ def investment_categories():
     color_data = list(zip(color_hex, labels, sizes, percentages))
 
     return render_template('investment_categories.html', graph_json=graph_json, data=color_data, total_money_sum=total_money_sum)
-@app.route('/docs/pie-chart')
+
+@app.route('/pie-chart')
 def pie_chart():
     with sqlite3.connect('database.db') as conn:
         cursor = conn.cursor()
@@ -377,6 +390,7 @@ def pie_chart():
     
     return render_template('pie_chart.html', graph_bar_json=graph_bar_json, graph_pie_json=graph_pie_json, data=data_list, overall_total=overall_total)
 
-if __name__ == (__name__, template_folder="docs"):
+if __name__ == '__main__':
     app.run(debug=True)
+
     
