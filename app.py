@@ -377,6 +377,6 @@ def pie_chart():
     
     return render_template('pie_chart.html', graph_bar_json=graph_bar_json, graph_pie_json=graph_pie_json, data=data_list, overall_total=overall_total)
 
-if __name__ == '__main__':
+if __name__ == (__name__, template_folder="docs"):
     app.run(debug=True)
     
