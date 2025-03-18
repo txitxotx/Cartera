@@ -13,7 +13,7 @@ import plotly
 
 
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder="docs")
 
 def get_current_value(isin):
     try:
